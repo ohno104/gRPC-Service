@@ -23,7 +23,8 @@ func main() {
 
 	client := pb.NewGreeterClient(conn)
 	//_ = SayHello(client)
-	_ = SayList(client)
+	//_ = SayList(client)
+	_ = SayRecord(client, &pb.HelloRequest{Name: "felix"})
 }
 
 func SayHello(client pb.GreeterClient) error {
@@ -47,5 +48,16 @@ func SayList(client pb.GreeterClient) error {
 		log.Printf("resp: %v", resp)
 	}
 
+	return nil
+}
+
+func SayRecord(client pb.GreeterClient, r *pb.HelloRequest) error {
+	stream, _ := client.SayRecord(context.Background())
+	for n := 0; n < 6; n++ {
+		_ = stream.Send(r)
+	}
+	resp, _ := stream.CloseAndRecv()
+
+	log.Printf("resp err: %v", resp)
 	return nil
 }

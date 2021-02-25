@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
+	"log"
 	"net"
 
 	pb "felix.bs.com/felix/BeStrongerInGO/gRPC-Service/proto"
@@ -28,6 +30,22 @@ func (s *GreeterServer) SayList(r *pb.HelloRequest, stream pb.Greeter_SayListSer
 	}
 
 	return nil
+}
+
+func (S *GreeterServer) SayRecord(stream pb.Greeter_SayRecordServer) error {
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			message := &pb.HelloReply{Message: "say.record"}
+			return stream.SendAndClose(message)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		log.Printf("resp: %v", resp)
+	}
 }
 
 func main() {
