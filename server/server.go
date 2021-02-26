@@ -32,7 +32,7 @@ func (s *GreeterServer) SayList(r *pb.HelloRequest, stream pb.Greeter_SayListSer
 	return nil
 }
 
-func (S *GreeterServer) SayRecord(stream pb.Greeter_SayRecordServer) error {
+func (s *GreeterServer) SayRecord(stream pb.Greeter_SayRecordServer) error {
 	for {
 		resp, err := stream.Recv()
 		if err == io.EOF {
@@ -44,6 +44,24 @@ func (S *GreeterServer) SayRecord(stream pb.Greeter_SayRecordServer) error {
 			return err
 		}
 
+		log.Printf("resp: %v", resp)
+	}
+}
+
+func (s *GreeterServer) SayRoute(stream pb.Greeter_SayRouteServer) error {
+	n := 0
+	for {
+		_ = stream.Send(&pb.HelloReply{Message: "say.route"})
+
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return nil
+		}
+
+		n++
 		log.Printf("resp: %v", resp)
 	}
 }

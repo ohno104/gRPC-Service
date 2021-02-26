@@ -24,7 +24,8 @@ func main() {
 	client := pb.NewGreeterClient(conn)
 	//_ = SayHello(client)
 	//_ = SayList(client)
-	_ = SayRecord(client, &pb.HelloRequest{Name: "felix"})
+	//_ = SayRecord(client, &pb.HelloRequest{Name: "felix"})
+	_ = SayRoute(client, &pb.HelloRequest{Name: "felix"})
 }
 
 func SayHello(client pb.GreeterClient) error {
@@ -59,5 +60,25 @@ func SayRecord(client pb.GreeterClient, r *pb.HelloRequest) error {
 	resp, _ := stream.CloseAndRecv()
 
 	log.Printf("resp err: %v", resp)
+	return nil
+}
+
+func SayRoute(client pb.GreeterClient, r *pb.HelloRequest) error {
+	stream, _ := client.SayRoute(context.Background())
+	for n := 0; n <= 6; n++ {
+		_ = stream.Send(r)
+
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		log.Printf("resp err: %v", resp)
+	}
+
+	_ = stream.CloseSend()
 	return nil
 }
