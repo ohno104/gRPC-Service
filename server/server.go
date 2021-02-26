@@ -1,5 +1,6 @@
-package main
+package server
 
+/*
 import (
 	"context"
 	"flag"
@@ -72,3 +73,4 @@ func main() {
 	lis, _ := net.Listen("tcp", ":"+port)
 	server.Serve(lis)
 }
+*/

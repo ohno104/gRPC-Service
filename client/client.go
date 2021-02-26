@@ -2,14 +2,34 @@ package main
 
 import (
 	"context"
-	"flag"
-	"io"
 	"log"
 
 	pb "felix.bs.com/felix/BeStrongerInGO/gRPC-Service/proto"
 	"google.golang.org/grpc"
 )
 
+func main() {
+	ctx := context.Background()
+	clientConn, _ := GetClientConn(ctx, "localhost:8001", nil)
+	defer clientConn.Close()
+
+	tagServiceClient := pb.NewTagServiceClient(clientConn)
+	resp, _ := tagServiceClient.GetTagList(
+		ctx,
+		&pb.GetTagListRequest{
+			Name: "",
+		},
+	)
+
+	log.Printf("resp: %v", resp)
+}
+
+func GetClientConn(ctx context.Context, target string, opts []grpc.DialOption) (*grpc.ClientConn, error) {
+	opts = append(opts, grpc.WithInsecure())
+	return grpc.DialContext(ctx, target, opts...)
+}
+
+/*
 var port string
 
 func init() {
@@ -82,3 +102,4 @@ func SayRoute(client pb.GreeterClient, r *pb.HelloRequest) error {
 	_ = stream.CloseSend()
 	return nil
 }
+*/
