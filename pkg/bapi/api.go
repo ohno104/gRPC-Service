@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"golang.org/x/net/context/ctxhttp"
 )
 
 const (
@@ -26,7 +28,10 @@ func NewAPI(url string) *API {
 }
 
 func (a *API) httpGet(ctx context.Context, path string) ([]byte, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/%s", a.URL, path))
+	//resp, err := http.Get(fmt.Sprintf("%s/%s", a.URL, path))
+
+	//timeout contorl
+	resp, err := ctxhttp.Get(ctx, http.DefaultClient, fmt.Sprintf("%s/%s", a.URL, path))
 	if err != nil {
 		return nil, err
 	}
