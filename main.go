@@ -1,77 +1,27 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net"
 	"net/http"
-
-	"github.com/soheilhy/cmux"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"time"
 
 	pb "felix.bs.com/felix/BeStrongerInGO/gRPC-Service/proto"
 	"felix.bs.com/felix/BeStrongerInGO/gRPC-Service/server"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/soheilhy/cmux"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 var port string
 
-//var grpcPort string
-//var httpPort string
-
 func init() {
-	//flag.StringVar(&grpcPort, "gport", "8001", "通訊埠編號")
-	//flag.StringVar(&httpPort, "hport", "9001", "通訊埠編號")
-	flag.StringVar(&port, "port", "8003", "通訊埠編號")
+	flag.StringVar(&port, "port", "8001", "通訊埠編號")
 	flag.Parse()
 }
-
-/*
-func main() {
-	errs := make(chan error)
-	go func() {
-		err := RunHttpServer(httpPort)
-		if err != nil {
-			errs <- err
-		}
-	}()
-
-	go func() {
-		err := RunGrpcServer(grpcPort)
-		if err != nil {
-			errs <- err
-		}
-	}()
-
-	select {
-	case err := <-errs:
-		log.Fatalf("Run Server err: %v", err)
-	}
-}
-
-
-func RunHttpServer(port string) error {
-	serveMux := http.NewServeMux()
-	serveMux.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(`pong`))
-	})
-
-	return http.ListenAndServe(":"+port, serveMux)
-}
-
-func RunGrpcServer(port string) error {
-	s := grpc.NewServer()
-	pb.RegisterTagServiceServer(s, server.NewTagServer())
-
-	//using for grpcurl to debug
-	reflection.Register(s)
-	lis, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		return err
-	}
-	return s.Serve(lis)
-}
-*/
 
 func main() {
 	l, err := RunTCPServer(port)
@@ -112,7 +62,17 @@ func RunHttpServer(port string) *http.Server {
 }
 
 func RunGrpcServer() *grpc.Server {
-	s := grpc.NewServer()
+	opts := []grpc.ServerOption{
+		//grpc.UnaryInterceptor(HelloInterceptor),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			HelloInterceptor,
+			WorldInterceptor,
+			AccessLog,
+			ErrorLog,
+		)),
+	}
+
+	s := grpc.NewServer(opts...)
 	pb.RegisterTagServiceServer(s, server.NewTagServer())
 
 	//using for grpcurl to debug
@@ -122,4 +82,38 @@ func RunGrpcServer() *grpc.Server {
 
 func RunTCPServer(port string) (net.Listener, error) {
 	return net.Listen("tcp", ":"+port)
+}
+
+func HelloInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println("你好~")
+	resp, err := handler(ctx, req)
+	log.Println("再見~")
+	return resp, err
+}
+
+func WorldInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println("你好 WORLD~")
+	resp, err := handler(ctx, req)
+	log.Println("再見 WORLD~")
+	return resp, err
+}
+
+func AccessLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	requestLog := "access request log: method: %s, begin_time: %d. request: %v"
+	beginTime := time.Now().Local().Unix()
+	log.Printf(requestLog, info.FullMethod, beginTime, req)
+
+	resp, err := handler(ctx, req)
+	responseLog := "access response Log: method: %s, begin_time: %d, end_time: %d, response: %v"
+	endTime := time.Now().Local().Unix()
+	log.Printf(responseLog, info.FullMethod, beginTime, endTime, resp)
+	return resp, err
+}
+
+func ErrorLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	resp, err := handler(ctx, req)
+	if err != nil {
+		log.Printf("error log")
+	}
+	return resp, err
 }
